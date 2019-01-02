@@ -72,7 +72,7 @@ if __name__ == "__main__":
     for e in range(EPISODES):
         state = env.reset()
         state = np.reshape(state, [1, state_size])
-        for time in range(999):
+        for time in range(200):
             env.render()
             action = agent.act(state,env)
             next_state, reward, done, _ = env.step(action)
