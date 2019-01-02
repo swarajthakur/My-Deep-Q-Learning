@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import random
 import gym
-import math
 import numpy as np
 from collections import deque
 from keras.models import Sequential
