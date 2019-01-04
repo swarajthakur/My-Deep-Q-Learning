@@ -23,6 +23,8 @@ class DQNAgent:
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.model = self._build_model()
+        self.target_model = self._build_model()
+        self.update_target_model()
 
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
@@ -33,6 +35,10 @@ class DQNAgent:
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
+
+    def update_target_model(self):
+        # copy weights from model to target_model
+        self.target_model.set_weights(self.model.get_weights())
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -50,7 +56,8 @@ class DQNAgent:
             if done:
                 target_updated = reward
             else:
-                target_updated = (reward + self.gamma * np.amax(self.model.predict(next_state)[0]))
+                t = self.target_model.predict(next_state)[0]
+                target_updated = (reward + self.gamma * np.amax(t))
             target[0][action] = target_updated
             self.model.fit(state, target, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
@@ -64,11 +71,12 @@ class DQNAgent:
 
 
 if __name__ == "__main__":
-    env = gym.make('MountainCar-v0')
+    env = gym.make('BipedalWalker-v2')
     state_size = env.observation_space.shape[0]
-    action_size = env.action_space.n
-    print(env.observation_space.shape[0])
-    print(env.action_space.n)
+    #action_size = env.action_space.n
+    action_size = 4
+    #print(env.observation_space.shape[0])
+    #print(env.action_space.n)
     agent = DQNAgent(state_size, action_size)
     # agent.load("/Users/swt02/workspaces/python/datascience/deep-q-learning/save/cartpole-dqn.h5")
     done = False
@@ -78,7 +86,7 @@ if __name__ == "__main__":
         state = env.reset()
         state = np.reshape(state, [1, state_size])
         for time in range(200):
-            env.render()
+            #env.render()
             action = agent.act(state,env)
             next_state, reward, done, _ = env.step(action)
             #reward = reward if not done else -200
@@ -86,6 +94,7 @@ if __name__ == "__main__":
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             if done:
+                agent.update_target_model()
                 print("episode: {}/{}, score: {}, e: {:.2}".format(e, EPISODES, time, agent.epsilon))
                 if time < 199:
                     agent.save("/Users/swt02/workspaces/python/datascience/deep-q-learning/save/cartpole-dqn.h5")

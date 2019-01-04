@@ -23,6 +23,8 @@ class DQNAgent:
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.model = self._build_model()
+        self.target_model = self._build_model()
+        self.update_target_model()
 
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
@@ -33,6 +35,10 @@ class DQNAgent:
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
+
+    def update_target_model(self):
+        # copy weights from model to target_model
+        self.target_model.set_weights(self.model.get_weights())
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -50,7 +56,8 @@ class DQNAgent:
             if done:
                 target_updated = reward
             else:
-                target_updated = (reward + self.gamma * np.amax(self.model.predict(next_state)[0]))
+                t = self.target_model.predict(next_state)[0]
+                target_updated = (reward + self.gamma * np.amax(t))
             target[0][action] = target_updated
             self.model.fit(state, target, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
@@ -86,6 +93,7 @@ if __name__ == "__main__":
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             if done:
+                agent.update_target_model()
                 print("episode: {}/{}, score: {}, e: {:.2}".format(e, EPISODES, time, agent.epsilon))
                 if time < 199:
                     agent.save("/Users/swt02/workspaces/python/datascience/deep-q-learning/save/cartpole-dqn.h5")
