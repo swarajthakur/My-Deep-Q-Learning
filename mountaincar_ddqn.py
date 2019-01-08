@@ -2,8 +2,11 @@
 import random
 import gym
 import numpy as np
-#import os
-#os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+import keras
+import tensorflow as tf
+config = tf.ConfigProto( device_count = {'GPU': 1 , 'CPU': 4} ) 
+sess = tf.Session(config=config) 
+keras.backend.set_session(sess)
 from collections import deque
 from keras.models import Sequential
 from keras.layers import Dense
@@ -17,10 +20,10 @@ class DQNAgent:
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=2000)
-        self.gamma = 0.85    # discount rate
+        self.gamma = 0.95    # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.999
         self.learning_rate = 0.001
         self.model = self._build_model()
         self.target_model = self._build_model()
@@ -30,7 +33,7 @@ class DQNAgent:
         # Neural Net for Deep-Q learning Model
         model = Sequential()
         model.add(Dense(24, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(48, activation='relu'))
+        #model.add(Dense(48, activation='relu'))
         model.add(Dense(24, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
@@ -53,11 +56,13 @@ class DQNAgent:
         minibatch = random.sample(self.memory, batch_size)
         for state, action, reward, next_state, done in minibatch:
             target = self.model.predict(state)
-            if done:
-                target_updated = reward
+            if state[0][1] >= 0.5:
+                target_updated = 20
+            elif done:
+                target_updated = reward + state[0][1]
             else:
                 t = self.target_model.predict(next_state)[0]
-                target_updated = (reward + self.gamma * np.amax(t))
+                target_updated = ((reward + state[0][1]) + self.gamma * np.amax(t))
             target[0][action] = target_updated
             self.model.fit(state, target, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
@@ -74,13 +79,12 @@ if __name__ == "__main__":
     env = gym.make('MountainCar-v0')
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
-    print(env.observation_space.shape[0])
-    print(env.action_space.n)
     agent = DQNAgent(state_size, action_size)
-    # agent.load("/Users/swt02/workspaces/python/datascience/deep-q-learning/save/cartpole-dqn.h5")
+    # agent.load("./save/cartpole-dqn.h5")
     done = False
     batch_size = 32
-
+    start_size = 512
+    
     for e in range(EPISODES):
         state = env.reset()
         state = np.reshape(state, [1, state_size])
@@ -94,9 +98,9 @@ if __name__ == "__main__":
             state = next_state
             if done:
                 agent.update_target_model()
-                print("episode: {}/{}, score: {}, e: {:.2}".format(e, EPISODES, time, agent.epsilon))
+                print("episode: {}/{}, score: {}, e: {}".format(e, EPISODES, time, agent.epsilon))
                 if time < 199:
-                    agent.save("/Users/swt02/workspaces/python/datascience/deep-q-learning/save/cartpole-dqn.h5")
+                    agent.save("./DataScience/deep-q-learning/save/mountaincar_ddqn.h5")
                 break
-            if len(agent.memory) > batch_size:
+            if len(agent.memory) > start_size:
                 agent.replay(batch_size)
