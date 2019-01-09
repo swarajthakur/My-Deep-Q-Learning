@@ -1,13 +1,11 @@
 import gym
+import time
 import numpy as np
 import random
 import tensorflow  as tf
 from tensorflow.keras import Sequential
-#from keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
-#from keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam
-#from keras.optimizers import Adam
 
 from collections import deque
 
@@ -78,16 +76,17 @@ def main():
     gamma   = 0.9
     epsilon = .95
 
-    trials  = 1000
+    trials  = 3
     trial_len = 500
 
     # updateTargetNetwork = 1000
     dqn_agent = DQN(env=env)
     steps = []
+    start_time = time.time()
     for trial in range(trials):
         cur_state = env.reset().reshape(1,2)
         for step in range(trial_len):
-            #env.render()
+            env.render()
             action = dqn_agent.act(cur_state)
             new_state, reward, done, _ = env.step(action)
 
@@ -109,6 +108,8 @@ def main():
             print("Completed in {} trials".format(trial))
             dqn_agent.save_model("success.model")
             break
+    timer = time.time()
+    print(timer - start_time)
 
 if __name__ == "__main__":
     main()
