@@ -1,4 +1,6 @@
+import time
 import tensorflow as tf
+#with tf.device('/cpu:0'):
 mnist = tf.keras.datasets.mnist
 
 (x_train, y_train),(x_test, y_test) = mnist.load_data()
@@ -14,5 +16,8 @@ model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
+start_time = time.time()
 model.fit(x_train, y_train, epochs=5)
 model.evaluate(x_test, y_test)
+timer = time.time()
+print(timer - start_time)
